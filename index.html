@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Para mi reina hermosa 🌸</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #0a0f2e;
+    font-family: 'Georgia', 'Times New Roman', serif;
+  }
+  canvas {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .carta-contenedor {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    z-index: 10;
+    opacity: 0;
+    transition: all 1.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+  }
+  .carta-contenedor.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: all;
+  }
+  .carta {
+    background: linear-gradient(135deg, #fff9f0 0%, #ffe8d6 100%);
+    border: 3px solid #f4a5a5;
+    border-radius: 12px;
+    padding: clamp(25px, 5vw, 45px);
+    max-width: 90vw;
+    width: 550px;
+    box-shadow: 
+      0 0 40px rgba(244, 165, 165, 0.6),
+      0 10px 40px rgba(0, 0, 0, 0.3),
+      inset 0 0 60px rgba(255, 220, 0.3);
+    position: relative;
+    animation: flotarCarta 4s ease-in-out infinite;
+  }
+  
+  @keyframes flotarCarta {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  
+  .carta::before {
+    content: '💕';
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 35px;
+    filter: drop-shadow(0 0 10px rgba(244, 165, 165, 0.8));
+  }
+  .carta::after {
+    content: '🌸 🌺 🌸';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    letter-spacing: 15px;
+  }
+  
+  .carta-titulo {
+    color: #d44a6a;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 8px rgba(212, 74, 106, 0.3);
+    font-style: italic;
+  }
+  .carta-texto {
+    color: #5a3a42;
+    font-size: clamp(1rem, 2.5vw, 1.15rem);
+    line-height: 1.8;
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  .carta-firma {
+    color: #d44a6a;
+    font-size: clamp(1.1rem, 3vw, 1.4rem);
+    text-align: right;
+    margin-top: 25px;
+    font-style: italic;
+    font-weight: bold;
+  }
+  
+  .btn-musica {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 20;
+    background: rgba(255, 200, 220, 0.2);
+    border: 2px solid rgba(244, 165, 165, 0.6);
+    color: #fff;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    opacity: 0;
+  }
+  .btn-musica.visible {
+    opacity: 1;
+  }
+  .btn-musica:hover {
+    background: rgba(244, 165, 165, 0.4);
+    transform: scale(1.1);
+  }
+  
+  .petalo {
+    position: fixed;
+    font-size: 20px;
+    pointer-events: none;
+    z-index: 5;
+    animation: caerPetalo linear forwards;
+  }
+  @keyframes caerPetalo {
+    to {
+      transform: translateY(100vh) rotate(720deg);
+      opacity: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="carta-contenedor" id="cartaContenedor">
+  <div class="carta">
+    <div class="carta-titulo">Mi reina hermosa</div>
+    <div class="carta-texto">
+      Tengo el agrado de invitarte este sábado<br>
+      para celebrarte tu cumpleaños.<br><br>
+      Será un día especial, lleno de amor,<br>
+      risas y momentos que guardaremos<br>
+      por siempre en el corazón.
+    </div>
+    <div class="carta-firma">Con todo mi amor 💕</div>
+  </div>
+</div>
+
+<button class="btn-musica" id="btnMusica" title="Música">♪</button>
+
+<audio id="musicaFondo" loop>
+  <source src="cancion.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const CONFIG = {
+  cieloNoche:    "#0a0f2e",
+  cieloAmanecer: "#ffb3ba",
+  cieloMedio:    "#ffd4b3",
+  cieloSol:      "#ffeee6",
+  sol:           "#ff9a76",
+  solHalo:       "rgba(255, 154, 118, 0.4)",
+  estrella:      "#fff5f7",
+  estrellaBrillo:"#ffffff",
+  duracionLluvia:   5.0,
+  duracionAmanecer: 4.0,
+  duracionCarta:    2.5,
+  numEstrellas: 200,
+  
+  // Config del aro
+  aroOpacidad: 0.18, // Muy tenue, casi imperceptible
+  aroTamaño: 0.65,   // 65% del tamaño del sol
+  aroGrosor: 4,      // Grosor del anillo
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+const lerp = (a,b,t) => a + (b-a)*t;
+const easeOut = t => 1 - Math.pow(1-t, 3);
+const easeInOut = t => t<0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+
+function hexToRgb(hex) {
+  const m = hex.replace('#','');
+  const n = parseInt(m.length===3 ? m.split('').map(c=>c+c).join('') : m, 16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+function lerpColor(c1, c2, t) {
+  const a = hexToRgb(c1), b = hexToRgb(c2);
+  return `rgb(${Math.round(lerp(a[0],b[0],t))},${Math.round(lerp(a[1],b[1],t))},${Math.round(lerp(a[2],b[2],t))})`;
+}
+
+// ---------- DIBUJAR ARO DE MATRIMONIO ----------
+function dibujarAro(x, y, radio, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha * CONFIG.aroOpacidad;
+  
+  // Aro exterior con gradiente dorado sutil
+  const gradiente = ctx.createLinearGradient(x - radio, y, x + radio, y);
+  gradiente.addColorStop(0, 'rgba(255, 223, 128, 0.6)');
+  gradiente.addColorStop(0.5, 'rgba(255, 245, 200, 0.8)');
+  gradiente.addColorStop(1, 'rgba(255, 223, 128, 0.6)');
+  
+  ctx.strokeStyle = gradiente;
+  ctx.lineWidth = CONFIG.aroGrosor;
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = 'rgba(255, 220, 150, 0.4)';
+  
+  // Dibujar el anillo
+  ctx.beginPath();
+  ctx.arc(x, y, radio, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Brillo sutil en la parte superior
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.lineWidth = CONFIG.aroGrosor * 0.4;
+  ctx.beginPath();
+  ctx.arc(x, y, radio, Math.PI * 1.2, Math.PI * 1.8);
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+class Estrella {
+  constructor() { this.reset(true); }
+  reset(inicial=false) {
+    this.x = Math.random() * W * 1.5 - W * 0.25;
+    this.y = inicial ? Math.random() * H * 0.7 : -Math.random()*300 - 50;
+    this.z = 0.4 + Math.random()*0.6;
+    this.velX = (80 + Math.random()*60) * this.z;
+    this.velY = (120 + Math.random()*100) * this.z;
+    this.tam = (1.5 + Math.random()*2.5) * this.z;
+    this.brillo = 0.5 + Math.random()*0.5;
+    this.cola = [];
+    this.maxCola = 15;
+  }
+  update(dt) {
+    this.cola.unshift({x: this.x, y: this.y});
+    if (this.cola.length > this.maxCola) this.cola.pop();
+    this.x += this.velX * dt;
+    this.y += this.velY * dt;
+    if (this.y > H + 50 || this.x > W + 50) { this.reset(); }
+  }
+  draw() {
+    this.cola.forEach((p, i) => {
+      const alpha = (1 - i/this.maxCola) * this.brillo * 0.6;
+      const r = this.tam * (1 - i/this.maxCola * 0.5);
+      if (r < 0.3) return;
+      ctx.fillStyle = `rgba(255, 245, 247, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+      ctx.fill();
+    });
+    const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.tam*4);
+    g.addColorStop(0, `rgba(255,255,255,${this.brillo})`);
+    g.addColorStop(1, 'rgba(255,200,220,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.tam*4, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = CONFIG.estrellaBrillo;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.tam, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function crearPetalo() {
+  const petalo = document.createElement('div');
+  petalo.className = 'petalo';
+  petalo.textContent = ['🌸', '🌺', '💮', '🏵️'][Math.floor(Math.random()*4)];
+  petalo.style.left = Math.random() * 100 + 'vw';
+  petalo.style.animationDuration = (8 + Math.random() * 5) + 's';
+  petalo.style.fontSize = (15 + Math.random() * 10) + 'px';
+  document.body.appendChild(petalo);
+  setTimeout(() => petalo.remove(), 13000);
+}
+
+const audio = document.getElementById('musicaFondo');
+const btnMusica = document.getElementById('btnMusica');
+let musicaIniciada = false;
+audio.volume = 0.4;
+
+btnMusica.addEventListener('click', () => {
+  if (audio.paused) {
+    audio.play();
+    btnMusica.textContent = '❚❚';
+  } else {
+    audio.pause();
+    btnMusica.textContent = '♪';
+  }
+});
+
+const estrellas = Array.from({length: CONFIG.numEstrellas}, () => new Estrella());
+let tiempo = 0;
+let last = performance.now();
+const cartaContenedor = document.getElementById('cartaContenedor');
+
+function frame(now) {
+  const dt = Math.min(0.05, (now - last)/1000);
+  last = now;
+  tiempo += dt;
+
+  const pAmanecer = tiempo > CONFIG.duracionLluvia*0.2
+    ? Math.min(1, (tiempo - CONFIG.duracionLluvia*0.2) / CONFIG.duracionAmanecer)
+    : 0;
+  const pCarta = tiempo > CONFIG.duracionLluvia*0.5
+    ? Math.min(1, (tiempo - CONFIG.duracionLluvia*0.5) / CONFIG.duracionCarta)
+    : 0;
+
+  let colorFondo;
+  if (pAmanecer < 0.5) {
+    colorFondo = lerpColor(CONFIG.cieloNoche, CONFIG.cieloMedio, easeInOut(pAmanecer * 2));
+  } else {
+    colorFondo = lerpColor(CONFIG.cieloMedio, CONFIG.cieloSol, easeInOut((pAmanecer - 0.5) * 2));
+  }
+  ctx.fillStyle = colorFondo;
+  ctx.fillRect(0, 0, W, H);
+
+  if (pAmanecer > 0) {
+    const solY = lerp(H + 150, H*0.7, easeOut(pAmanecer));
+    const radioSol = 70;
+    
+    // Halo del sol
+    const g = ctx.createRadialGradient(W/2, solY, 30, W/2, solY, 400);
+    g.addColorStop(0, CONFIG.solHalo);
+    g.addColorStop(1, 'rgba(255, 154, 118, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    
+    // Sol
+    ctx.fillStyle = CONFIG.sol;
+    ctx.shadowBlur = 50;
+    ctx.shadowColor = CONFIG.sol;
+    ctx.beginPath();
+    ctx.arc(W/2, solY, radioSol, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    // ARO DE MATRIMONIO - aparece sutilmente con el sol
+    const aroAlpha = Math.min(1, pAmanecer * 1.5);
+    const radioAro = radioSol * CONFIG.aroTamaño;
+    dibujarAro(W/2, solY, radioAro, aroAlpha);
+  }
+
+  const enLluvia = tiempo < CONFIG.duracionLluvia + 2;
+  estrellas.forEach(e => {
+    e.update(dt);
+    if (!enLluvia) e.brillo *= 0.98;
+    if (e.brillo > 0.05) e.draw();
+  });
+
+  if (pAmanecer > 0.3 && pAmanecer < 0.9 && Math.random() < 0.15) {
+    crearPetalo();
+  }
+
+  if (pCarta > 0.3) {
+    cartaContenedor.classList.add('visible');
+    btnMusica.classList.add('visible');
+    if (!musicaIniciada && pCarta > 0.5) {
+      audio.play().catch(() => {});
+      btnMusica.textContent = '❚❚';
+      musicaIniciada = true;
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+document.body.addEventListener('click', () => {
+  if (audio.paused && musicaIniciada) {
+    audio.play().catch(() => {});
+  }
+}, { once: true });
+</script>
+</body>
+  </html>
